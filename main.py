@@ -12,7 +12,6 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
-import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -30,17 +29,12 @@ from tqdm import tqdm
 from torch.cuda.amp import GradScaler, autocast
 
 ###### Comprobamos si CUDA esta disponible o no ######
-response = input("Do you want to CHECK if CUDA is available? (Y/N): ").strip().upper()
-
-if response == "Y" and torch.cuda.is_available():
+if torch.cuda.is_available():
     device = torch.device("cuda")
     print("CUDA is available, using GPU.")
 else:
     device = torch.device("cpu")
-    if response == "Y":
-        print("CUDA is not available, using CPU.")
-    else:
-        print("CUDA check skipped, using CPU by default.")
+    print("CUDA is not available, using CPU.")
 
 
 ###### Configuramos los Seeds para que sean reproducibles ######
@@ -87,16 +81,18 @@ print("Duplicate entries in Train Dataset:", train_df.duplicated().sum())
 
 
 ###### Generamos la primera tabla de datos comparando la cantidad de imagenes Humanas vs IA para saber si hay una diferencia de datos
-plt.figure(figsize=(6,4))
-sns.countplot(x="label", data=train_df, palette="coolwarm")
+plt.figure(figsize=(6, 4))
+sns.countplot(x="label", data=train_df, hue="label", palette="coolwarm", legend=False)
 plt.title("Label Distribution")
 plt.xticks([0, 1], ["Human-Created", "AI-Generated"])
 plt.show()
 
 
-###### Mostramos imagenes generamos por IA e imagenes generadas por Humanos en los Dataset de entrenamiento ######
+###### Comprobamos que las imagenes generadas por la IA esten sincronizadas con las generadas por Humanos ######
+train_rng = random.Random()
+train_random_state = train_rng.randint(0, len(train_df) - 1)
 def show_images(df, label, num_images=5):
-    sample_images = df[df["label"] == label].sample(num_images, random_state=57)["file_name"].values
+    sample_images = df[df["label"] == label].sample(num_images, random_state=train_random_state)["file_name"].values
 
     plt.figure(figsize=(15, 5))
     for i, img_path in enumerate(sample_images):
@@ -113,9 +109,11 @@ show_images(train_df, label=1) # Mostramos las imagenes de IA
 show_images(train_df, label=0) # Mostramos las imagenes de Humanos
 
 
-###### Mostramos imagenes aleatorias de los Dataset de prueba donde estan tanto imagenes humanas como generadas por IA ######
+###### Comprobamos que carguen las imagenes en los datos de prueba y tengan tanto generadas por humanos como por IA ######
+test_rng = random.Random()
+test_random_state = test_rng.randint(0, len(test_df) - 1)
 def show_test_images(df, num_images=5):
-    sample_images = df.sample(num_images, random_state=57)["id"].values  
+    sample_images = df.sample(num_images, random_state=test_random_state)["id"].values
 
     plt.figure(figsize=(15, 5))
     for i, img_path in enumerate(sample_images):
@@ -129,3 +127,34 @@ def show_test_images(df, num_images=5):
     plt.show()
 
 show_test_images(test_df, num_images=5)
+
+
+###### Comparamos la distribucion de tamaño en las imagenes entre los datos de entrenamiento y de prueba ######
+def get_image_dimensions(image_paths, sample_size=500):
+    image_sizes = []
+
+    for img_path in image_paths.sample(sample_size, random_state=test_random_state):
+        img = cv2.imread(img_path)
+        if img is not None:
+            h, w, _ = img.shape
+            image_sizes.append((w, h))
+
+    return pd.DataFrame(image_sizes, columns=["Width", "Height"])
+
+train_size_df = get_image_dimensions(train_df["file_name"])
+test_size_df = get_image_dimensions(test_df["id"])
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+sns.scatterplot(x=train_size_df["Width"], y=train_size_df["Height"], alpha=0.5, ax=axes[0])
+axes[0].set_title("Train Image Dimensions")
+axes[0].set_xlabel("Width")
+axes[0].set_ylabel("Height")
+
+sns.scatterplot(x=test_size_df["Width"], y=test_size_df["Height"], alpha=0.5, ax=axes[1], color='red')
+axes[1].set_title("Test Image Dimensions")
+axes[1].set_xlabel("Width")
+axes[1].set_ylabel("Height")
+
+plt.tight_layout()
+plt.show()
