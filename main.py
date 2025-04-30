@@ -64,12 +64,11 @@ train_df = train_df.drop(columns=['Unnamed: 0'])
 
 
 ###### Actualizamos las columnas id de los Dataset de prueba, incluyendo la ruta absoluta en la ruta relativa existente
-###### Actualizamos la columna file_name en los Dataset de entrenamiento para incluir la ruta absoluta a cada imagen.
 test_df['id'] = test_df['id'].apply(lambda x: os.path.join(base_dir, x))
-train_df['file_name'] = train_df['file_name'].apply(lambda x: os.path.join(base_dir, x))
-
-
 print(f"Train Data: {len(train_df)}")
+
+###### Actualizamos la columna file_name en los Dataset de entrenamiento para incluir la ruta absoluta a cada imagen.
+train_df['file_name'] = train_df['file_name'].apply(lambda x: os.path.join(base_dir, x))
 print(f"Test Data: {len(test_df)}")
 
 
