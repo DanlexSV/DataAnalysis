@@ -86,8 +86,46 @@ print("Missing values in Test Dataset:\n", test_df.isnull().sum())
 print("Duplicate entries in Train Dataset:", train_df.duplicated().sum())
 
 
+###### Generamos la primera tabla de datos comparando la cantidad de imagenes Humanas vs IA para saber si hay una diferencia de datos
 plt.figure(figsize=(6,4))
 sns.countplot(x="label", data=train_df, palette="coolwarm")
 plt.title("Label Distribution")
 plt.xticks([0, 1], ["Human-Created", "AI-Generated"])
 plt.show()
+
+
+###### Mostramos imagenes generamos por IA e imagenes generadas por Humanos en los Dataset de entrenamiento ######
+def show_images(df, label, num_images=5):
+    sample_images = df[df["label"] == label].sample(num_images, random_state=57)["file_name"].values
+
+    plt.figure(figsize=(15, 5))
+    for i, img_path in enumerate(sample_images):
+        img = cv2.imread(img_path)  # Lee la imagen
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convierte BGR a RGB
+        plt.subplot(1, num_images, i+1)
+        plt.imshow(img)
+        plt.axis("off")
+        plt.title("AI-Generated" if label == 1 else "Human-Created")
+
+    plt.show()
+
+show_images(train_df, label=1) # Mostramos las imagenes de IA
+show_images(train_df, label=0) # Mostramos las imagenes de Humanos
+
+
+###### Mostramos imagenes aleatorias de los Dataset de prueba donde estan tanto imagenes humanas como generadas por IA ######
+def show_test_images(df, num_images=5):
+    sample_images = df.sample(num_images, random_state=57)["id"].values  
+
+    plt.figure(figsize=(15, 5))
+    for i, img_path in enumerate(sample_images):
+        img = cv2.imread(img_path)  # Lee la imagen
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  
+        plt.subplot(1, num_images, i+1)
+        plt.imshow(img)
+        plt.axis("off")
+        plt.title(f"Image {i+1}")  
+    
+    plt.show()
+
+show_test_images(test_df, num_images=5)
