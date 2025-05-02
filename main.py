@@ -35,7 +35,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
     print("CUDA is not available, using CPU.")
-
+print("\n")
 
 ###### Configuramos los Seeds para que sean reproducibles ######
 def set_seed(seed=42):
@@ -52,13 +52,13 @@ set_seed(42)
 
 ###### Cargamos los Dataset e imprimimos la cantidad de datos obtenidos ######
 base_dir = './dataset'
-train_df = pd.read_csv("./dataset/train.csv")
-test_df = pd.read_csv("./dataset/test.csv")
+train_df = pd.read_csv("./images_csv/train.csv")
+test_df = pd.read_csv("./images_csv/test.csv")
 
-print("Train dataset shape:", train_df.shape)
-print("Test dataset shape:", test_df.shape)
-train_df.head()
-test_df.head()
+print("Forma del dataset de entrenamiento:", train_df.shape, "\n")
+print("Forma del dataset de prueba:", test_df.shape, "\n")
+print(train_df.head(), "\n")
+print(test_df.head(), "\n")
 
 train_df = train_df.drop(columns=['Unnamed: 0'])
 
