@@ -63,23 +63,25 @@ print(test_df.head(), "\n")
 train_df = train_df.drop(columns=['Unnamed: 0'])
 
 
-###### Actualizamos las columnas id de los Dataset de prueba, incluyendo la ruta absoluta en la ruta relativa existente
+###### Actualizamos las columnas id de los Dataset de prueba
+######incluyendo la ruta absoluta en la ruta relativa existente
 test_df['id'] = test_df['id'].apply(lambda x: os.path.join(base_dir, x))
 print(f"Train Data: {len(train_df)}")
 
-###### Actualizamos la columna file_name en los Dataset de entrenamiento para incluir la ruta absoluta a cada imagen.
+###### Actualizamos la columna file_name en los Dataset de entrenamiento 
+######para incluir la ruta absoluta a cada imagen.
 train_df['file_name'] = train_df['file_name'].apply(lambda x: os.path.join(base_dir, x))
-print(f"Test Data: {len(test_df)}")
+print(f"Test Data: {len(test_df)} \n")
 
 
 ###### Comprobamos si no se han perdido datos o si se han duplicado algunos valores ######
-print("Missing values in Train Dataset:\n", train_df.isnull().sum())
-print("Missing values in Test Dataset:\n", test_df.isnull().sum())
+print("Valores perdidos en el Train Dataset:\n", train_df.isnull().sum())
+print("Valores perdidos en el Test Dataset:\n", test_df.isnull().sum())
 
-print("Duplicate entries in Train Dataset:", train_df.duplicated().sum())
+print("Entradas duplicadas en el Train Dataset:", train_df.duplicated().sum(), "\n")
 
 
-###### Generamos la primera tabla de datos comparando la cantidad de imagenes Humanas vs IA para saber si hay una diferencia de datos
+###### Generamos la primera grafica de comparación por la columna label
 plt.figure(figsize=(6, 4))
 sns.countplot(x="label", data=train_df, hue="label", palette="coolwarm", legend=False)
 plt.title("Label Distribution")
@@ -87,7 +89,7 @@ plt.xticks([0, 1], ["Human-Created", "AI-Generated"])
 plt.show()
 
 
-###### Comprobamos que las imagenes generadas por la IA esten sincronizadas con las generadas por Humanos ######
+###### Inspección visual de las muestras de imagenes en el train dataset ######
 train_rng = random.Random()
 train_random_state = train_rng.randint(0, len(train_df) - 1)
 def show_images(df, label, num_images=5):
@@ -108,7 +110,7 @@ show_images(train_df, label=1) # Mostramos las imagenes de IA
 show_images(train_df, label=0) # Mostramos las imagenes de Humanos
 
 
-###### Comprobamos que carguen las imagenes en los datos de prueba y tengan tanto generadas por humanos como por IA ######
+###### Inspección visual de imagenes en el test dataset ######
 test_rng = random.Random()
 test_random_state = test_rng.randint(0, len(test_df) - 1)
 def show_test_images(df, num_images=5):
