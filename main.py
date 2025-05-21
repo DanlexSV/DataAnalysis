@@ -151,42 +151,13 @@ sns.scatterplot(x=train_size_df["Width"], y=train_size_df["Height"], alpha=0.5, 
 axes[0].set_title("Train Image Dimensions")
 axes[0].set_xlabel("Width")
 axes[0].set_ylabel("Height")
+axes[0].grid(True)
 
 sns.scatterplot(x=test_size_df["Width"], y=test_size_df["Height"], alpha=0.5, ax=axes[1], color='red')
 axes[1].set_title("Test Image Dimensions")
 axes[1].set_xlabel("Width")
 axes[1].set_ylabel("Height")
-
-plt.tight_layout()
-plt.show()
-
-
-###### Funcion para obtener la grafica
-def get_image_dimensions(image_paths, sample_size=500):
-    image_sizes = []
-
-    for img_path in image_paths.sample(sample_size, random_state=42):
-        img = cv2.imread(img_path)
-        if img is not None:
-            h, w, _ = img.shape
-            image_sizes.append((w, h))
-
-    return pd.DataFrame(image_sizes, columns=["Width", "Height"])
-
-train_size_df = get_image_dimensions(train_df["file_name"])
-test_size_df = get_image_dimensions(test_df["id"])
-
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-sns.scatterplot(x=train_size_df["Width"], y=train_size_df["Height"], alpha=0.5, ax=axes[0])
-axes[0].set_title("Train Image Dimensions")
-axes[0].set_xlabel("Width")
-axes[0].set_ylabel("Height")
-
-sns.scatterplot(x=test_size_df["Width"], y=test_size_df["Height"], alpha=0.5, ax=axes[1], color='red')
-axes[1].set_title("Test Image Dimensions")
-axes[1].set_xlabel("Width")
-axes[1].set_ylabel("Height")
+axes[1].grid(True)
 
 plt.tight_layout()
 plt.show()
@@ -212,16 +183,88 @@ human_size_df = get_image_dimensions(human_images)
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
+# AI images
 sns.scatterplot(x=ai_size_df["Width"], y=ai_size_df["Height"], alpha=0.5, ax=axes[0], color='red')
 axes[0].set_title("AI-Generated Image Dimensions")
 axes[0].set_xlabel("Width")
 axes[0].set_ylabel("Height")
+axes[0].grid(True)
 
+# Human images
 sns.scatterplot(x=human_size_df["Width"], y=human_size_df["Height"], alpha=0.5, ax=axes[1], color='blue')
 axes[1].set_title("Human-Created Image Dimensions")
 axes[1].set_xlabel("Width")
 axes[1].set_ylabel("Height")
+axes[1].grid(True)
 
 plt.tight_layout()
 plt.show()
+
+#### FIN DEL DOCUMENTO
+
+###### Funcion para comparar la intensidad de pixeles entre IA vs Humanos
+def plot_pixel_intensity_side_by_side(img_path1, img_path2, title1="AI-Generated", title2="Human-Created"):
+    img1 = cv2.imread(img_path1, cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread(img_path2, cv2.IMREAD_GRAYSCALE)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    axes[0].hist(img1.ravel(), bins=256, color="red", alpha=0.7)
+    axes[0].set_xlabel("Pixel Intensity")
+    axes[0].set_ylabel("Count")
+    axes[0].set_title(f"{title1} - Pixel Intensity")
+
+    axes[1].hist(img2.ravel(), bins=256, color="blue", alpha=0.7)
+    axes[1].set_xlabel("Pixel Intensity")
+    axes[1].set_ylabel("Count")
+    axes[1].set_title(f"{title2} - Pixel Intensity")
+
+    plt.tight_layout()
+    plt.show()
+
+sample_ai = train_df[train_df["label"] == 1]["file_name"].sample(1).values[0]
+sample_human = train_df[train_df["label"] == 0]["file_name"].sample(1).values[0]
+
+plot_pixel_intensity_side_by_side(sample_ai, sample_human)
+
+
+###### Funcion para observar la distribucion de colores que tienen las imagenes
+###### Y comparar la distribucion entre IA vs Humanos
+def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Generated", title2="Human-Created"):
+    img1 = cv2.imread(img_path1)
+    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
+    
+    img2 = cv2.imread(img_path2)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+
+    r1, g1, b1 = cv2.split(img1)
+    r2, g2, b2 = cv2.split(img2)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # AI-Generated Image Histogram
+    axes[0].hist(r1.ravel(), bins=256, color="red", alpha=0.5, label="Red")
+    axes[0].hist(g1.ravel(), bins=256, color="green", alpha=0.5, label="Green")
+    axes[0].hist(b1.ravel(), bins=256, color="blue", alpha=0.5, label="Blue")
+    axes[0].set_xlabel("Pixel Value")
+    axes[0].set_ylabel("Frequency")
+    axes[0].set_title(f"{title1} - Color Distribution")
+    axes[0].legend()
+
+    # Human-Created Image Histogram
+    axes[1].hist(r2.ravel(), bins=256, color="red", alpha=0.5, label="Red")
+    axes[1].hist(g2.ravel(), bins=256, color="green", alpha=0.5, label="Green")
+    axes[1].hist(b2.ravel(), bins=256, color="blue", alpha=0.5, label="Blue")
+    axes[1].set_xlabel("Pixel Value")
+    axes[1].set_ylabel("Frequency")
+    axes[1].set_title(f"{title2} - Color Distribution")
+    axes[1].legend()
+
+    plt.tight_layout()
+    plt.show()
+
+sample_ai = train_df[train_df["label"] == 1]["file_name"].sample(1).values[0]
+sample_human = train_df[train_df["label"] == 0]["file_name"].sample(1).values[0]
+
+plot_color_distribution_side_by_side(sample_ai, sample_human)
 
