@@ -200,7 +200,6 @@ axes[1].grid(True)
 plt.tight_layout()
 plt.show()
 
-#### FIN DEL DOCUMENTO
 
 ###### Funcion para comparar la intensidad de pixeles entre IA vs Humanos
 def plot_pixel_intensity_side_by_side(img_path1, img_path2, title1="AI-Generated", title2="Human-Created"):
@@ -213,11 +212,13 @@ def plot_pixel_intensity_side_by_side(img_path1, img_path2, title1="AI-Generated
     axes[0].set_xlabel("Pixel Intensity")
     axes[0].set_ylabel("Count")
     axes[0].set_title(f"{title1} - Pixel Intensity")
+    axes[0].grid(True)
 
     axes[1].hist(img2.ravel(), bins=256, color="blue", alpha=0.7)
     axes[1].set_xlabel("Pixel Intensity")
     axes[1].set_ylabel("Count")
     axes[1].set_title(f"{title2} - Pixel Intensity")
+    axes[1].grid(True)
 
     plt.tight_layout()
     plt.show()
@@ -226,6 +227,35 @@ sample_ai = train_df[train_df["label"] == 1]["file_name"].sample(1).values[0]
 sample_human = train_df[train_df["label"] == 0]["file_name"].sample(1).values[0]
 
 plot_pixel_intensity_side_by_side(sample_ai, sample_human)
+
+
+###### Calculo de la media y varianza de la intensidad de pixeles
+def compute_intensity_stats(file_paths):
+    total_sum = 0.0
+    total_sumsq = 0.0
+    total_count = 0
+
+    for fp in file_paths:
+        img = cv2.imread(fp, cv2.IMREAD_GRAYSCALE).astype(np.float64)
+        pixels = img.ravel()
+        total_sum    += pixels.sum()
+        total_sumsq  += (pixels ** 2).sum()
+        total_count  += pixels.size
+
+    mean = total_sum / total_count
+    var  = (total_sumsq / total_count) - (mean ** 2)
+    return mean, var
+
+###### Extrae listas de rutas
+ai_paths    = train_df.loc[train_df.label == 1, "file_name"].tolist()
+hum_paths   = train_df.loc[train_df.label == 0, "file_name"].tolist()
+
+###### Calcula estadísticas
+mean_ai, var_ai   = compute_intensity_stats(ai_paths)
+mean_hum, var_hum = compute_intensity_stats(hum_paths)
+
+print(f"IA-generated images:   media intensidad = {mean_ai:.2f}, varianza = {var_ai:.2f}")
+print(f"Human-created images:  media intensidad = {mean_hum:.2f}, varianza = {var_hum:.2f}")
 
 
 ###### Funcion para observar la distribucion de colores que tienen las imagenes
@@ -250,6 +280,7 @@ def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Genera
     axes[0].set_ylabel("Frequency")
     axes[0].set_title(f"{title1} - Color Distribution")
     axes[0].legend()
+    axes[0].grid(True)
 
     # Human-Created Image Histogram
     axes[1].hist(r2.ravel(), bins=256, color="red", alpha=0.5, label="Red")
@@ -259,6 +290,7 @@ def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Genera
     axes[1].set_ylabel("Frequency")
     axes[1].set_title(f"{title2} - Color Distribution")
     axes[1].legend()
+    axes[1].grid(True)
 
     plt.tight_layout()
     plt.show()
