@@ -258,9 +258,11 @@ print(f"IA-generated images:   media intensidad = {mean_ai:.2f}, varianza = {var
 print(f"Human-created images:  media intensidad = {mean_hum:.2f}, varianza = {var_hum:.2f}")
 
 
-###### Funcion para observar la distribucion de colores que tienen las imagenes
-###### Y comparar la distribucion entre IA vs Humanos
 def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Generated", title2="Human-Created"):
+    """
+    Función para observar la distribución de colores que tienen las imágenes
+    y comparar la distribución entre IA vs. humanos.
+    """
     img1 = cv2.imread(img_path1)
     img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
     
@@ -272,7 +274,6 @@ def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Genera
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    # AI-Generated Image Histogram
     axes[0].hist(r1.ravel(), bins=256, color="red", alpha=0.5, label="Red")
     axes[0].hist(g1.ravel(), bins=256, color="green", alpha=0.5, label="Green")
     axes[0].hist(b1.ravel(), bins=256, color="blue", alpha=0.5, label="Blue")
@@ -282,7 +283,6 @@ def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Genera
     axes[0].legend()
     axes[0].grid(True)
 
-    # Human-Created Image Histogram
     axes[1].hist(r2.ravel(), bins=256, color="red", alpha=0.5, label="Red")
     axes[1].hist(g2.ravel(), bins=256, color="green", alpha=0.5, label="Green")
     axes[1].hist(b2.ravel(), bins=256, color="blue", alpha=0.5, label="Blue")
@@ -299,4 +299,40 @@ sample_ai = train_df[train_df["label"] == 1]["file_name"].sample(1).values[0]
 sample_human = train_df[train_df["label"] == 0]["file_name"].sample(1).values[0]
 
 plot_color_distribution_side_by_side(sample_ai, sample_human)
+
+
+def compare_random_color_pairs(df, rng=None):
+    """
+    Toma el Train Dataset para obtener dos imágenes aleatorias de un mismo índice relativo
+    en ambos grupos (IA y Humanos), con el objetivo de comparar entre ellas sus distribuciones
+    de color.
+    """
+    if rng is None:
+        rng = random.Random()
+
+    ia_paths = df.loc[df.label == 1, "file_name"].tolist()
+    hu_paths = df.loc[df.label == 0, "file_name"].tolist()
+
+    min_len = min(len(ia_paths), len(hu_paths))
+    if min_len < 2:
+        raise ValueError("Se necesitan al menos 2 imágenes en cada grupo (IA y Humanos)")
+
+    idxs = rng.sample(range(min_len), 2)
+
+    ia_img1, ia_img2 = [ia_paths[i] for i in idxs]
+    hu_img1, hu_img2 = [hu_paths[i] for i in idxs]
+
+    plot_color_distribution_side_by_side(
+        ia_img1, ia_img2,
+        title1="IA-generated #1",
+        title2="IA-generated #2"
+    )
+
+    plot_color_distribution_side_by_side(
+        hu_img1, hu_img2,
+        title1="Human-created #1",
+        title2="Human-created #2"
+    )
+
+compare_random_color_pairs(train_df, rng=train_rng)
 
