@@ -336,3 +336,132 @@ def compare_random_color_pairs(df, rng=None):
 
 compare_random_color_pairs(train_df, rng=train_rng)
 
+
+def compute_color_stats_all(file_paths):
+    """
+    Recorre todas las imágenes de file_paths y acumula:
+      - total_sum[c]: suma de todos los valores del canal c
+      - total_sumsq[c]: suma de cuadrados de todos los valores del canal c
+      - total_count: número total de píxeles procesados (mismo para cada canal)
+    Luego calcula media, varianza y desviación estándar por canal.
+    Devuelve un DataFrame con columnas ['Channel','Mean','Variance','StdDev'].
+    """
+    total_sum   = np.zeros(3, dtype=np.float64)
+    total_sumsq = np.zeros(3, dtype=np.float64)
+    total_count = 0
+
+    for fp in file_paths:
+        img = cv2.imread(fp)
+        if img is None:
+            continue
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float64)
+        pixels = img_rgb.reshape(-1, 3)
+
+        total_sum   += pixels.sum(axis=0)
+        total_sumsq += (pixels ** 2).sum(axis=0)
+        total_count += pixels.shape[0]
+
+    if total_count == 0:
+        raise ValueError("No hay píxeles válidos en las rutas proporcionadas.")
+
+    means = total_sum / total_count
+    variances = total_sumsq / total_count - means**2
+    stddevs = np.sqrt(variances)
+
+    return pd.DataFrame({
+        'Channel':  ['R', 'G', 'B'],
+        'Mean':     means,
+        'Variance': variances,
+        'StdDev':   stddevs
+    })
+
+def per_image_channel_means(file_paths):
+    """
+    Para cada ruta en file_paths:
+     - Carga la imagen en RGB
+     - Calcula la media de R, G y B
+    Devuelve un DataFrame de forma (n_imágenes × 3 canales).
+    """
+    data = {'R': [], 'G': [], 'B': []}
+    for fp in file_paths:
+        img = cv2.imread(fp)
+        if img is None:
+            continue
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # Append means para cada canal
+        data['R'].append(rgb[:, :, 0].mean())
+        data['G'].append(rgb[:, :, 1].mean())
+        data['B'].append(rgb[:, :, 2].mean())
+    return pd.DataFrame(data)
+
+def plot_channel_means_boxplots(ai_df, hu_df):
+    """
+    Dibuja dos boxplots lado a lado:
+     - ax[0]: distribución de medias por canal para IA
+     - ax[1]: distribución de medias por canal para Humanos
+    """
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+    # IA
+    ax[0].boxplot(
+        [ai_df['R'], ai_df['G'], ai_df['B']],
+        tick_labels=['R','G','B']
+    )
+    ax[0].set_title('IA-generated: Channel Means')
+    ax[0].set_ylabel('Mean Pixel Value')
+    ax[0].grid(True, linestyle='--', alpha=0.5)
+
+    # Humanos
+    ax[1].boxplot(
+        [hu_df['R'], hu_df['G'], hu_df['B']],
+        tick_labels=['R','G','B']
+    )
+    ax[1].set_title('Human-created: Channel Means')
+    ax[1].grid(True, linestyle='--', alpha=0.5)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def summarize_means_df(df):
+    """
+    Dado un DataFrame de medias por imagen y canal,
+    devuelve un resumen con:
+     - Mean of Means
+     - Variance of Means
+     - StdDev of Means
+    """
+    return pd.DataFrame({
+        'Channel':     ['R','G','B'],
+        'Mean of Means':     df.mean().values,
+        'Variance of Means': df.var().values,
+        'StdDev of Means':   df.std().values
+    })
+
+# Extraer rutas de IA y Humanos
+ai_paths  = train_df.loc[train_df.label == 1, "file_name"].tolist()
+hu_paths  = train_df.loc[train_df.label == 0, "file_name"].tolist()
+
+# Calcular estadísticas para cada grupo
+ai_stats_df = compute_color_stats_all(ai_paths)
+hu_stats_df = compute_color_stats_all(hu_paths)
+
+# Opción A: imprimir resultados puros
+print("\n=== IA-generated Color Stats ===\n")
+print(ai_stats_df)
+print("\n=== Human-created Color Stats ===\n")
+print(hu_stats_df)
+
+
+ai_means_df = per_image_channel_means(ai_paths)
+hu_means_df = per_image_channel_means(hu_paths)
+
+# 3a. Mostrar boxplots lado a lado
+plot_channel_means_boxplots(ai_means_df, hu_means_df)
+
+# 3b. Obtener tablas resumen
+ai_summary = summarize_means_df(ai_means_df)
+hu_summary = summarize_means_df(hu_means_df)
+
+print("\n=== IA-generated Summary ===\n", ai_summary)
+print("\n=== Human-created Summary ===\n", hu_summary)
