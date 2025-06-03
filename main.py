@@ -229,8 +229,10 @@ sample_human = train_df[train_df["label"] == 0]["file_name"].sample(1).values[0]
 plot_pixel_intensity_side_by_side(sample_ai, sample_human)
 
 
-###### Calculo de la media y varianza de la intensidad de pixeles
 def compute_intensity_stats(file_paths):
+    """
+    Calculo de la media y desviación estándar de la intensidad de píxeles
+    """
     total_sum = 0.0
     total_sumsq = 0.0
     total_count = 0
@@ -238,59 +240,73 @@ def compute_intensity_stats(file_paths):
     for fp in file_paths:
         img = cv2.imread(fp, cv2.IMREAD_GRAYSCALE).astype(np.float64)
         pixels = img.ravel()
-        total_sum    += pixels.sum()
-        total_sumsq  += (pixels ** 2).sum()
-        total_count  += pixels.size
+        total_sum   += pixels.sum()
+        total_sumsq += (pixels ** 2).sum()
+        total_count += pixels.size
 
     mean = total_sum / total_count
     var  = (total_sumsq / total_count) - (mean ** 2)
-    return mean, var
+    stddev = np.sqrt(var)
+    return mean, stddev
 
 ###### Extrae listas de rutas
-ai_paths    = train_df.loc[train_df.label == 1, "file_name"].tolist()
-hum_paths   = train_df.loc[train_df.label == 0, "file_name"].tolist()
+ai_paths  = train_df.loc[train_df.label == 1, "file_name"].tolist()
+hum_paths = train_df.loc[train_df.label == 0, "file_name"].tolist()
 
 ###### Calcula estadísticas
-mean_ai, var_ai   = compute_intensity_stats(ai_paths)
-mean_hum, var_hum = compute_intensity_stats(hum_paths)
+mean_ai, std_ai   = compute_intensity_stats(ai_paths)
+mean_hum, std_hum = compute_intensity_stats(hum_paths)
 
-print(f"IA-generated images:   media intensidad = {mean_ai:.2f}, varianza = {var_ai:.2f}")
-print(f"Human-created images:  media intensidad = {mean_hum:.2f}, varianza = {var_hum:.2f}")
+print(f"IA-generated images:   intensidad media = {mean_ai:.2f}, desviación estándar = {std_ai:.2f}")
+print(f"Human-created images:  intensidad media = {mean_hum:.2f}, desviación estándar = {std_hum:.2f}")
 
 
-def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Generated", title2="Human-Created"):
+def plot_color_channels_expanded(img_path, title_prefix="Image"):
     """
-    Función para observar la distribución de colores que tienen las imágenes
-    y comparar la distribución entre IA vs. humanos.
+    Dibuja 4 subgráficos para la imagen en img_path:
+     - Solo canal Rojo
+     - Solo canal Verde
+     - Solo canal Azul
+     - Canales combinados (RGB)
+    El título de cada subgráfico se construye con title_prefix.
     """
-    img1 = cv2.imread(img_path1)
-    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-    
-    img2 = cv2.imread(img_path2)
-    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+    img = cv2.imread(img_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    r, g, b = cv2.split(img)
 
-    r1, g1, b1 = cv2.split(img1)
-    r2, g2, b2 = cv2.split(img2)
+    # Creamos una figura con 2×2 subplots
+    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # 1) Solo Rojo
+    axes[0, 0].hist(r.ravel(), bins=256, color="red", alpha=0.7)
+    axes[0, 0].set_title(f"{title_prefix} – Red Channel")
+    axes[0, 0].set_xlabel("Pixel Value")
+    axes[0, 0].set_ylabel("Frequency")
+    axes[0, 0].grid(True)
 
-    axes[0].hist(r1.ravel(), bins=256, color="red", alpha=0.5, label="Red")
-    axes[0].hist(g1.ravel(), bins=256, color="green", alpha=0.5, label="Green")
-    axes[0].hist(b1.ravel(), bins=256, color="blue", alpha=0.5, label="Blue")
-    axes[0].set_xlabel("Pixel Value")
-    axes[0].set_ylabel("Frequency")
-    axes[0].set_title(f"{title1} - Color Distribution")
-    axes[0].legend()
-    axes[0].grid(True)
+    # 2) Solo Verde
+    axes[0, 1].hist(g.ravel(), bins=256, color="green", alpha=0.7)
+    axes[0, 1].set_title(f"{title_prefix} – Green Channel")
+    axes[0, 1].set_xlabel("Pixel Value")
+    axes[0, 1].set_ylabel("Frequency")
+    axes[0, 1].grid(True)
 
-    axes[1].hist(r2.ravel(), bins=256, color="red", alpha=0.5, label="Red")
-    axes[1].hist(g2.ravel(), bins=256, color="green", alpha=0.5, label="Green")
-    axes[1].hist(b2.ravel(), bins=256, color="blue", alpha=0.5, label="Blue")
-    axes[1].set_xlabel("Pixel Value")
-    axes[1].set_ylabel("Frequency")
-    axes[1].set_title(f"{title2} - Color Distribution")
-    axes[1].legend()
-    axes[1].grid(True)
+    # 3) Solo Azul
+    axes[1, 0].hist(b.ravel(), bins=256, color="blue", alpha=0.7)
+    axes[1, 0].set_title(f"{title_prefix} – Blue Channel")
+    axes[1, 0].set_xlabel("Pixel Value")
+    axes[1, 0].set_ylabel("Frequency")
+    axes[1, 0].grid(True)
+
+    # 4) Canales combinados (RGB)
+    axes[1, 1].hist(r.ravel(), bins=256, color="red", alpha=0.5, label="Red")
+    axes[1, 1].hist(g.ravel(), bins=256, color="green", alpha=0.5, label="Green")
+    axes[1, 1].hist(b.ravel(), bins=256, color="blue", alpha=0.5, label="Blue")
+    axes[1, 1].set_title(f"{title_prefix} – Combined RGB")
+    axes[1, 1].set_xlabel("Pixel Value")
+    axes[1, 1].set_ylabel("Frequency")
+    axes[1, 1].legend()
+    axes[1, 1].grid(True)
 
     plt.tight_layout()
     plt.show()
@@ -298,15 +314,20 @@ def plot_color_distribution_side_by_side(img_path1, img_path2, title1="AI-Genera
 sample_ai = train_df[train_df["label"] == 1]["file_name"].sample(1).values[0]
 sample_human = train_df[train_df["label"] == 0]["file_name"].sample(1).values[0]
 
-plot_color_distribution_side_by_side(sample_ai, sample_human)
+plot_color_channels_expanded(sample_ai, title_prefix="IA-generated")
+plot_color_channels_expanded(sample_human, title_prefix="Human-created")
 
 
 def compare_random_color_pairs(df, rng=None):
     """
     Toma el Train Dataset para obtener dos imágenes aleatorias de un mismo índice relativo
-    en ambos grupos (IA y Humanos), con el objetivo de comparar entre ellas sus distribuciones
-    de color.
+    en ambos grupos (IA y Humanos), y para cada imagen dibuja cuatro histogramas:
+      - Canal Rojo
+      - Canal Verde
+      - Canal Azul
+      - Combinado RGB
     """
+
     if rng is None:
         rng = random.Random()
 
@@ -317,22 +338,20 @@ def compare_random_color_pairs(df, rng=None):
     if min_len < 2:
         raise ValueError("Se necesitan al menos 2 imágenes en cada grupo (IA y Humanos)")
 
+    # Elegir dos índices aleatorios (mismos para IA y Humanos)
     idxs = rng.sample(range(min_len), 2)
 
-    ia_img1, ia_img2 = [ia_paths[i] for i in idxs]
-    hu_img1, hu_img2 = [hu_paths[i] for i in idxs]
+    # Extraer las dos imágenes de IA y las dos de Humanos
+    ia_img1, ia_img2   = [ia_paths[i] for i in idxs]
+    hu_img1, hu_img2   = [hu_paths[i] for i in idxs]
 
-    plot_color_distribution_side_by_side(
-        ia_img1, ia_img2,
-        title1="IA-generated #1",
-        title2="IA-generated #2"
-    )
+    # Para cada imagen IA, dibujar los 4 histogramas
+    plot_color_channels_expanded(ia_img1, title_prefix="IA-generated #1")
+    plot_color_channels_expanded(ia_img2, title_prefix="IA-generated #2")
 
-    plot_color_distribution_side_by_side(
-        hu_img1, hu_img2,
-        title1="Human-created #1",
-        title2="Human-created #2"
-    )
+    # Para cada imagen Humana, dibujar los 4 histogramas
+    plot_color_channels_expanded(hu_img1, title_prefix="Human-created #1")
+    plot_color_channels_expanded(hu_img2, title_prefix="Human-created #2")
 
 compare_random_color_pairs(train_df, rng=train_rng)
 
