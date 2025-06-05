@@ -362,8 +362,9 @@ def compute_color_stats_all(file_paths):
       - total_sum[c]: suma de todos los valores del canal c
       - total_sumsq[c]: suma de cuadrados de todos los valores del canal c
       - total_count: número total de píxeles procesados (mismo para cada canal)
-    Luego calcula media, varianza y desviación estándar por canal.
-    Devuelve un DataFrame con columnas ['Channel','Mean','Variance','StdDev'].
+
+    Luego calcula media y desviación estándar por canal.
+    Devuelve un DataFrame con columnas ['Channel','Mean','StdDev'].
     """
     total_sum   = np.zeros(3, dtype=np.float64)
     total_sumsq = np.zeros(3, dtype=np.float64)
@@ -388,17 +389,26 @@ def compute_color_stats_all(file_paths):
     stddevs = np.sqrt(variances)
 
     return pd.DataFrame({
-        'Channel':  ['R', 'G', 'B'],
-        'Mean':     means,
-        'Variance': variances,
-        'StdDev':   stddevs
+        'Channel': ['R', 'G', 'B'],
+        'Mean':    means,
+        'StdDev':  stddevs
     })
+
+ai_paths = train_df.loc[train_df.label == 1, "file_name"].tolist()
+hu_paths = train_df.loc[train_df.label == 0, "file_name"].tolist()
+
+ai_stats_df = compute_color_stats_all(ai_paths)
+hu_stats_df = compute_color_stats_all(hu_paths)
+
+print("\n=== IA-generated Color Stats ===\n", ai_stats_df)
+print("\n=== Human-created Color Stats ===\n", hu_stats_df)
+
 
 def per_image_channel_means(file_paths):
     """
     Para cada ruta en file_paths:
-     - Carga la imagen en RGB
-     - Calcula la media de R, G y B
+      - Carga la imagen en RGB
+      - Calcula la media de R, G y B
     Devuelve un DataFrame de forma (n_imágenes × 3 canales).
     """
     data = {'R': [], 'G': [], 'B': []}
@@ -407,17 +417,21 @@ def per_image_channel_means(file_paths):
         if img is None:
             continue
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        # Append means para cada canal
+        # Media de cada canal
         data['R'].append(rgb[:, :, 0].mean())
         data['G'].append(rgb[:, :, 1].mean())
         data['B'].append(rgb[:, :, 2].mean())
     return pd.DataFrame(data)
 
+ai_means_df = per_image_channel_means(ai_paths)
+hu_means_df = per_image_channel_means(hu_paths)
+
+
 def plot_channel_means_boxplots(ai_df, hu_df):
     """
     Dibuja dos boxplots lado a lado:
-     - ax[0]: distribución de medias por canal para IA
-     - ax[1]: distribución de medias por canal para Humanos
+      - ax[0]: distribución de medias por canal para IA
+      - ax[1]: distribución de medias por canal para Humanos
     """
     fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -441,44 +455,24 @@ def plot_channel_means_boxplots(ai_df, hu_df):
     plt.tight_layout()
     plt.show()
 
+plot_channel_means_boxplots(ai_means_df, hu_means_df)
+
 
 def summarize_means_df(df):
     """
     Dado un DataFrame de medias por imagen y canal,
     devuelve un resumen con:
-     - Mean of Means
-     - Variance of Means
-     - StdDev of Means
+      - Mean of Means
+      - StdDev of Means
+    (La varianza se omite intencionalmente.)
     """
     return pd.DataFrame({
-        'Channel':     ['R','G','B'],
-        'Mean of Means':     df.mean().values,
-        'Variance of Means': df.var().values,
-        'StdDev of Means':   df.std().values
+        'Channel':         ['R','G','B'],
+        'Mean of Means':   df.mean().values,
+        'StdDev of Means': df.std().values
     })
 
-# Extraer rutas de IA y Humanos
-ai_paths  = train_df.loc[train_df.label == 1, "file_name"].tolist()
-hu_paths  = train_df.loc[train_df.label == 0, "file_name"].tolist()
 
-# Calcular estadísticas para cada grupo
-ai_stats_df = compute_color_stats_all(ai_paths)
-hu_stats_df = compute_color_stats_all(hu_paths)
-
-# Opción A: imprimir resultados puros
-print("\n=== IA-generated Color Stats ===\n")
-print(ai_stats_df)
-print("\n=== Human-created Color Stats ===\n")
-print(hu_stats_df)
-
-
-ai_means_df = per_image_channel_means(ai_paths)
-hu_means_df = per_image_channel_means(hu_paths)
-
-# 3a. Mostrar boxplots lado a lado
-plot_channel_means_boxplots(ai_means_df, hu_means_df)
-
-# 3b. Obtener tablas resumen
 ai_summary = summarize_means_df(ai_means_df)
 hu_summary = summarize_means_df(hu_means_df)
 
